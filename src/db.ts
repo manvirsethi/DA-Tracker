@@ -75,24 +75,29 @@ export async function createApplication(input: ApplicationInput): Promise<number
   const db = await getDb();
   const now = new Date().toISOString();
   const dateAdded = now.slice(0, 10);
+  const dateApplied = input.stage === 'Not yet applied' || input.stage === 'Preparing application'
+    ? null
+    : dateAdded;
   const result = await db.execute(
     `INSERT INTO applications
-      (company, programme, location, url, priority, stage, status, date_added, application_deadline, notes, created_at, updated_at)
-     VALUES ($1, $2, $3, $4, $5, 'Not yet applied', 'Active', $6, $7, $8, $9, $9)`,
+      (company, programme, location, url, priority, stage, status, date_added, date_applied, application_deadline, notes, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, 'Active', $7, $8, $9, $10, $11, $11)`,
     [
       input.company.trim(),
       input.programme.trim(),
       input.location?.trim() || null,
       input.url?.trim() || null,
       input.priority,
+      input.stage,
       dateAdded,
+      dateApplied,
       input.application_deadline || null,
       input.notes?.trim() || '',
       now,
     ],
   );
   const id = Number(result.lastInsertId);
-  await addEvent(id, 'created', null, 'Not yet applied', 'Application added');
+  await addEvent(id, 'created', null, input.stage, 'Application added');
   return id;
 }
 
