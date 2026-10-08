@@ -4,8 +4,8 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, Check, CircleAlert,
-  Clock3, Download, ExternalLink, FileSpreadsheet, LayoutDashboard, Plus, RotateCcw,
-  Search, Settings2, Trash2, X,
+  Clock3, Download, ExternalLink, FileSpreadsheet, LayoutDashboard, Moon, Plus, RotateCcw,
+  Search, Settings2, Sun, Trash2, X,
 } from 'lucide-react';
 import {
   addDeadline, changeStage, createApplication, deleteDeadline, exportSnapshot,
@@ -16,7 +16,14 @@ import type { Application, ApplicationEvent, ApplicationInput, ApplicationStage,
 import { PIPELINE_GROUPS, STAGES } from './types';
 
 type View = 'dashboard' | 'applications' | 'archive';
+type Theme = 'light' | 'dark';
 const DAY = 86_400_000;
+
+function stageLabel(stage: ApplicationStage) {
+  if (stage === 'Not yet applied') return 'Not applied';
+  if (stage === 'Application submitted') return 'Applied';
+  return stage;
+}
 
 function parseDateOnly(value: string) {
   const [y, m, d] = value.split('-').map(Number);
@@ -78,7 +85,17 @@ export default function App() {
   const [editId, setEditId] = useState<number | null>(null);
   const [query, setQuery] = useState('');
   const [stageFilter, setStageFilter] = useState('All');
+  const [theme, setTheme] = useState<Theme>(() => {
+    const saved = localStorage.getItem('da-tracker-theme');
+    if (saved === 'light' || saved === 'dark') return saved;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
   const { active, archived, deadlines, loading, error, refresh } = useAppData();
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('da-tracker-theme', theme);
+  }, [theme]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -145,6 +162,14 @@ export default function App() {
           <NavButton active={view === 'archive' && !selected} icon={<Archive size={18}/>} label="Archive" shortcut="⌘3" onClick={() => { setSelectedId(null); setView('archive'); }} />
         </nav>
         <div className="sidebar-bottom">
+          <button
+            className="menu-button theme-toggle"
+            onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
+            <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          </button>
           <button className="menu-button" onClick={() => void handleExport('json')}><Download size={16}/> Export backup</button>
           <button className="menu-button" onClick={() => void handleExport('csv')}><FileSpreadsheet size={16}/> Export CSV</button>
         </div>
@@ -221,7 +246,7 @@ function Dashboard({ applications, deadlines, onOpen }: { applications: Applicat
 
 function ApplicationsView({ applications, stageFilter, setStageFilter, onOpen }: { applications: Application[]; stageFilter: string; setStageFilter: (v: string) => void; onOpen: (id: number) => void }) {
   return <>
-    <div className="heading-row"><PageHeading eyebrow="Active" title="Applications" description="Track each apprenticeship from interest through to outcome." /><select className="stage-filter" value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}><option>All</option>{STAGES.map((s) => <option key={s}>{s}</option>)}</select></div>
+    <div className="heading-row"><PageHeading eyebrow="Active" title="Applications" description="Track each apprenticeship from interest through to outcome." /><select className="stage-filter" value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}><option>All</option>{STAGES.map((s) => <option key={s} value={s}>{stageLabel(s)}</option>)}</select></div>
     {applications.length === 0 ? <EmptyState title="No applications here" body="Add an apprenticeship when your ChatGPT watcher finds one you want to pursue." /> : <div className="board">
       {PIPELINE_GROUPS.map((group) => {
         const items = applications.filter((a) => group.stages.includes(a.stage)).sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
@@ -234,12 +259,12 @@ function ApplicationsView({ applications, stageFilter, setStageFilter, onOpen }:
 function ArchiveView({ applications, onOpen, onRestore }: { applications: Application[]; onOpen: (id: number) => void; onRestore: (id: number) => void }) {
   return <>
     <PageHeading eyebrow="History" title="Archive" description="Rejected, withdrawn, closed and completed applications stay here for reference." />
-    {applications.length === 0 ? <EmptyState title="Archive is empty" body="Completed or closed applications will appear here." /> : <div className="archive-list">{applications.map((a) => <div className="archive-row" key={a.id}><button className="archive-main" onClick={() => onOpen(a.id)}><div><strong>{a.company}</strong><span>{a.programme} · {a.stage}</span></div><StatusBadge status={a.status}/></button><button className="icon-button" title="Restore" onClick={() => void onRestore(a.id)}><RotateCcw size={17}/></button></div>)}</div>}
+    {applications.length === 0 ? <EmptyState title="Archive is empty" body="Completed or closed applications will appear here." /> : <div className="archive-list">{applications.map((a) => <div className="archive-row" key={a.id}><button className="archive-main" onClick={() => onOpen(a.id)}><div><strong>{a.company}</strong><span>{a.programme} · {stageLabel(a.stage)}</span></div><StatusBadge status={a.status}/></button><button className="icon-button" title="Restore" onClick={() => void onRestore(a.id)}><RotateCcw size={17}/></button></div>)}</div>}
   </>;
 }
 
 function ApplicationCard({ application, onClick }: { application: Application; onClick: () => void }) {
-  return <button className="application-card" onClick={onClick}><div className="card-top"><PriorityDot priority={application.priority}/><span>{application.priority}</span></div><strong>{application.company}</strong><p>{application.programme}</p><div className="card-meta"><span>{application.stage}</span>{application.application_deadline && <span className={daysUntil(application.application_deadline) <= 3 ? 'urgent-text' : ''}>{deadlineLabel(application.application_deadline)}</span>}</div></button>;
+  return <button className="application-card" onClick={onClick}><div className="card-top"><PriorityDot priority={application.priority}/><span>{application.priority}</span></div><strong>{application.company}</strong><p>{application.programme}</p><div className="card-meta"><span>{stageLabel(application.stage)}</span>{application.application_deadline && <span className={daysUntil(application.application_deadline) <= 3 ? 'urgent-text' : ''}>{deadlineLabel(application.application_deadline)}</span>}</div></button>;
 }
 
 function ApplicationDetail({ application, onBack, onRefresh, onEdit }: { application: Application; onBack: () => void; onRefresh: () => Promise<void>; onEdit: () => void }) {
@@ -265,7 +290,7 @@ function ApplicationDetail({ application, onBack, onRefresh, onEdit }: { applica
     <button className="back-button" onClick={onBack}><ArrowLeft size={17}/> Back</button>
     <div className="detail-heading"><div><div className="eyebrow">Application</div><h1>{application.company}</h1><p>{application.programme}{application.location ? ` · ${application.location}` : ''}</p></div><div className="detail-actions"><PriorityBadge priority={application.priority}/><button className="secondary-button" onClick={onEdit}><Settings2 size={16}/> Edit</button></div></div>
 
-    <div className="stage-panel"><div><span>Current stage</span><strong>{application.stage}</strong></div>{application.status === 'Active' && <button className="primary-button" onClick={() => setShowStage(true)}>Change stage <ArrowRight size={16}/></button>}<StatusBadge status={application.status}/></div>
+    <div className="stage-panel"><div><span>Application status</span><strong>{stageLabel(application.stage)}</strong></div>{application.status === 'Active' && <button className="primary-button" onClick={() => setShowStage(true)}>Change stage <ArrowRight size={16}/></button>}<StatusBadge status={application.status}/></div>
 
     <div className="detail-grid">
       <Panel title="Next steps" subtitle="Deadlines for this application" action={application.status === 'Active' ? <button className="text-button" onClick={() => setShowDeadline(true)}><Plus size={15}/> Add deadline</button> : undefined}>
@@ -282,7 +307,7 @@ function ApplicationDetail({ application, onBack, onRefresh, onEdit }: { applica
     <div className="detail-grid lower">
       <Panel title="Notes" subtitle="Anything useful for this application"><div className={`notes-box ${application.notes ? '' : 'muted'}`}>{application.notes || 'No notes yet.'}</div></Panel>
       <Panel title="Timeline" subtitle="Recorded automatically">
-        <div className="timeline">{events.map((event) => <div className="timeline-item" key={event.id}><div className="timeline-dot"/><div><strong>{event.note || (event.type === 'stage_changed' ? `${event.from_stage} → ${event.to_stage}` : event.type.replaceAll('_', ' '))}</strong><span>{new Date(event.created_at).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span></div></div>)}</div>
+        <div className="timeline">{events.map((event) => <div className="timeline-item" key={event.id}><div className="timeline-dot"/><div><strong>{event.note || (event.type === 'stage_changed' ? `${event.from_stage ? stageLabel(event.from_stage) : ''} → ${event.to_stage ? stageLabel(event.to_stage) : ''}` : event.type.replaceAll('_', ' '))}</strong><span>{new Date(event.created_at).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</span></div></div>)}</div>
       </Panel>
     </div>
 
@@ -294,7 +319,7 @@ function ApplicationDetail({ application, onBack, onRefresh, onEdit }: { applica
 }
 
 function ApplicationForm({ application, onClose, onSaved }: { application: Application | null; onClose: () => void; onSaved: (id: number) => void }) {
-  const [form, setForm] = useState<ApplicationInput>({ company: application?.company ?? '', programme: application?.programme ?? '', location: application?.location ?? '', url: application?.url ?? '', priority: application?.priority ?? 'Normal', application_deadline: application?.application_deadline ?? '', notes: application?.notes ?? '' });
+  const [form, setForm] = useState<ApplicationInput>({ company: application?.company ?? '', programme: application?.programme ?? '', location: application?.location ?? '', url: application?.url ?? '', priority: application?.priority ?? 'Normal', stage: application?.stage ?? 'Not yet applied', application_deadline: application?.application_deadline ?? '', notes: application?.notes ?? '' });
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -304,20 +329,35 @@ function ApplicationForm({ application, onClose, onSaved }: { application: Appli
     if (form.url?.trim()) { try { new URL(form.url); } catch { setError('Enter a valid application URL.'); return; } }
     setSaving(true);
     try {
-      if (application) { await updateApplication(application.id, form); onSaved(application.id); }
-      else { const id = await createApplication(form); onSaved(id); }
+      if (application) {
+        await updateApplication(application.id, form);
+        if (form.stage !== application.stage) await changeStage(application.id, form.stage);
+        onSaved(application.id);
+      } else {
+        const id = await createApplication(form);
+        onSaved(id);
+      }
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); setSaving(false); }
   }
 
   return <div className="modal-backdrop"><form className="modal large" onSubmit={submit}><div className="modal-header"><div><span className="eyebrow">{application ? 'Edit' : 'New'}</span><h2>{application ? 'Edit application' : 'Add application'}</h2></div><button type="button" className="icon-button" onClick={onClose}><X size={18}/></button></div>
-    <div className="form-grid"><label>Company *<input autoFocus value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })}/></label><label>Programme *<input value={form.programme} onChange={(e) => setForm({ ...form, programme: e.target.value })}/></label><label>Location<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}/></label><label>Priority<select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}><option>High</option><option>Medium</option><option>Normal</option></select></label><label className="full">Application URL<input placeholder="https://…" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}/></label><label>Application deadline<input type="date" value={form.application_deadline} onChange={(e) => setForm({ ...form, application_deadline: e.target.value })}/></label><label className="full">Notes<textarea rows={5} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}/></label></div>
+    <div className="form-grid">
+      <label>Company *<input autoFocus value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })}/></label>
+      <label>Programme *<input value={form.programme} onChange={(e) => setForm({ ...form, programme: e.target.value })}/></label>
+      <label>Location<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}/></label>
+      <label>Priority<select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}><option>High</option><option>Medium</option><option>Normal</option></select></label>
+      <label>Application status<select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value as ApplicationStage })}>{STAGES.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}</select></label>
+      <label>Application deadline<input type="date" value={form.application_deadline} onChange={(e) => setForm({ ...form, application_deadline: e.target.value })}/></label>
+      <label className="full">Application URL<input placeholder="https://…" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}/></label>
+      <label className="full">Notes<textarea rows={5} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}/></label>
+    </div>
     {error && <div className="form-error">{error}</div>}
     <div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={saving}>{saving ? 'Saving…' : application ? 'Save changes' : 'Add application'}</button></div>
   </form></div>;
 }
 
 function StageModal({ current, onClose, onChoose }: { current: ApplicationStage; onClose: () => void; onChoose: (s: ApplicationStage) => void }) {
-  return <div className="modal-backdrop"><div className="modal"><div className="modal-header"><div><span className="eyebrow">Current: {current}</span><h2>Change stage</h2></div><button className="icon-button" onClick={onClose}><X size={18}/></button></div><div className="stage-list">{STAGES.map((stage) => <button key={stage} className={stage === current ? 'current' : ''} disabled={stage === current} onClick={() => onChoose(stage)}><span>{stage}</span>{stage === current ? <Check size={16}/> : <ArrowRight size={16}/>}</button>)}</div></div></div>;
+  return <div className="modal-backdrop"><div className="modal"><div className="modal-header"><div><span className="eyebrow">Current: {stageLabel(current)}</span><h2>Change status</h2></div><button className="icon-button" onClick={onClose}><X size={18}/></button></div><div className="stage-list">{STAGES.map((stage) => <button key={stage} className={stage === current ? 'current' : ''} disabled={stage === current} onClick={() => onChoose(stage)}><span>{stageLabel(stage)}</span>{stage === current ? <Check size={16}/> : <ArrowRight size={16}/>}</button>)}</div></div></div>;
 }
 
 function DeadlineModal({ onClose, onSave }: { onClose: () => void; onSave: (title: string, due: string) => void }) {
