@@ -232,7 +232,7 @@ button:disabled { cursor: default; opacity: .55; }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
+  grid-template-columns: repeat(4, minmax(0,1fr));
   gap: 14px;
   margin-bottom: 18px;
 }
@@ -355,7 +355,7 @@ button:disabled { cursor: default; opacity: .55; }
 
 .pipeline-summary {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0,1fr));
+  grid-template-columns: repeat(auto-fit, minmax(105px, 1fr));
 }
 
 .pipeline-summary > div {
@@ -1079,3 +1079,303 @@ input:focus, select:focus, textarea:focus {
     transition: background-color .18s ease, border-color .18s ease, color .18s ease;
   }
 }
+
+
+/* Intuitive applications view */
+.list-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.list-controls > span {
+  color: #8a93a4;
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.list-controls .stage-filter {
+  margin-bottom: 0;
+}
+
+.applications-list {
+  overflow: hidden;
+  border: 1px solid #e2e6ee;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.applications-list-header,
+.application-list-row {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.8fr) minmax(150px, 1fr) 110px 145px 24px;
+  gap: 16px;
+  align-items: center;
+}
+
+.applications-list-header {
+  min-height: 40px;
+  padding: 0 18px;
+  background: #f7f8fb;
+  border-bottom: 1px solid #e8ebf1;
+  color: #8b94a4;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.application-list-row {
+  width: 100%;
+  min-height: 72px;
+  padding: 10px 18px;
+  border: 0;
+  border-bottom: 1px solid #edf0f4;
+  background: #fff;
+  color: inherit;
+  text-align: left;
+}
+
+.application-list-row:last-child {
+  border-bottom: 0;
+}
+
+.application-list-row:hover {
+  background: #fafbfe;
+}
+
+.application-main-cell strong,
+.application-main-cell span,
+.deadline-cell strong,
+.deadline-cell span {
+  display: block;
+}
+
+.application-main-cell strong {
+  color: #202737;
+  font-size: 12px;
+}
+
+.application-main-cell span {
+  margin-top: 4px;
+  color: #7d8797;
+  font-size: 10px;
+}
+
+.deadline-cell strong {
+  color: #4f596a;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.deadline-cell span {
+  margin-top: 3px;
+  color: #9099a8;
+  font-size: 9px;
+}
+
+.deadline-cell.urgent strong,
+.deadline-cell.urgent span {
+  color: #bd4949;
+}
+
+.row-arrow {
+  color: #a5adba;
+  justify-self: end;
+}
+
+.stage-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 750;
+  line-height: 1.25;
+  white-space: normal;
+}
+
+.stage-badge.to-apply { background: #f1f3f6; color: #667085; }
+.stage-badge.applied { background: #edf1ff; color: #5366d9; }
+.stage-badge.assessment { background: #eeeaff; color: #6754c6; }
+.stage-badge.waiting { background: #fff5dc; color: #9a6819; }
+.stage-badge.interview { background: #e8f5ff; color: #33739c; }
+.stage-badge.offer { background: #e7f6ed; color: #377754; }
+.stage-badge.custom { background: #f1edfa; color: #6c5792; }
+
+/* Clearer application form */
+.application-form {
+  width: min(760px, 100%);
+  padding: 0;
+}
+
+.application-form .modal-header {
+  padding: 22px 24px 18px;
+  margin: 0;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.modal-header p {
+  max-width: 500px;
+  margin: 6px 0 0;
+  color: #8a93a4;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.application-form .form-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.form-section-heading {
+  margin-bottom: 13px;
+}
+
+.form-section-heading strong,
+.form-section-heading span {
+  display: block;
+}
+
+.form-section-heading strong {
+  color: #262d3c;
+  font-size: 12px;
+}
+
+.form-section-heading span,
+.field-hint {
+  margin-top: 3px;
+  color: #929aaa;
+  font-size: 9px;
+  font-weight: 500;
+}
+
+.status-field select {
+  font-weight: 650;
+}
+
+.custom-status-field {
+  padding: 12px;
+  border: 1px solid #dfe4ee;
+  border-radius: 10px;
+  background: #f8f9fc;
+}
+
+.application-form .modal-footer {
+  margin: 0;
+  padding: 16px 24px 20px;
+  background: #fafbfc;
+}
+
+/* Status picker */
+.status-modal {
+  width: min(560px, 100%);
+}
+
+.custom-stage-box {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #edf0f5;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.custom-stage-box .primary-button {
+  min-height: 38px;
+  white-space: nowrap;
+}
+
+@media (max-width: 1180px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0,1fr));
+  }
+
+  .applications-list {
+    overflow-x: auto;
+  }
+
+  .applications-list-header,
+  .application-list-row {
+    min-width: 820px;
+  }
+}
+
+@media (max-width: 900px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-grid .full {
+    grid-column: auto;
+  }
+
+  .custom-stage-box {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark mode additions for the redesigned views */
+[data-theme="dark"] .applications-list {
+  background: #121925;
+  border-color: #263143;
+}
+
+[data-theme="dark"] .applications-list-header {
+  background: #101721;
+  border-color: #263143;
+  color: #8793a5;
+}
+
+[data-theme="dark"] .application-list-row {
+  background: #121925;
+  border-color: #222d3d;
+}
+
+[data-theme="dark"] .application-list-row:hover {
+  background: #161f2d;
+}
+
+[data-theme="dark"] .application-main-cell strong,
+[data-theme="dark"] .form-section-heading strong {
+  color: #eef2f8;
+}
+
+[data-theme="dark"] .application-main-cell span,
+[data-theme="dark"] .deadline-cell span,
+[data-theme="dark"] .modal-header p,
+[data-theme="dark"] .form-section-heading span,
+[data-theme="dark"] .field-hint {
+  color: #8d99ad;
+}
+
+[data-theme="dark"] .deadline-cell strong {
+  color: #c6ceda;
+}
+
+[data-theme="dark"] .application-form .modal-header,
+[data-theme="dark"] .application-form .form-section,
+[data-theme="dark"] .custom-stage-box {
+  border-color: #263143;
+}
+
+[data-theme="dark"] .custom-status-field {
+  background: #101721;
+  border-color: #2b3748;
+}
+
+[data-theme="dark"] .application-form .modal-footer {
+  background: #101721;
+}
+
+[data-theme="dark"] .stage-badge.to-apply { background: #1c2430; color: #a3adbc; }
+[data-theme="dark"] .stage-badge.applied { background: #1c2542; color: #9eabff; }
+[data-theme="dark"] .stage-badge.assessment { background: #25203b; color: #baa9ff; }
+[data-theme="dark"] .stage-badge.waiting { background: #312713; color: #e3bd70; }
+[data-theme="dark"] .stage-badge.interview { background: #162a37; color: #89c5e8; }
+[data-theme="dark"] .stage-badge.offer { background: #182b22; color: #91c9a8; }
+[data-theme="dark"] .stage-badge.custom { background: #292239; color: #c0afe0; }
