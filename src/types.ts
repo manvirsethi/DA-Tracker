@@ -56,6 +56,7 @@ export interface ApplicationInput {
   location?: string;
   url?: string;
   priority: Priority;
+  stage: ApplicationStage;
   application_deadline?: string;
   notes?: string;
 }
