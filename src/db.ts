@@ -119,7 +119,8 @@ export async function changeStage(id: number, toStage: ApplicationStage) {
   if (!current || current.stage === toStage) return;
   const db = await getDb();
   const now = new Date().toISOString();
-  const appliedDate = current.date_applied || (toStage === 'Application submitted' ? now.slice(0, 10) : null);
+  const isPreApplication = toStage === 'Not yet applied' || toStage === 'Preparing application';
+  const appliedDate = current.date_applied || (!isPreApplication ? now.slice(0, 10) : null);
   await db.execute('UPDATE applications SET stage=$1, date_applied=$2, updated_at=$3 WHERE id=$4', [toStage, appliedDate, now, id]);
   await addEvent(id, 'stage_changed', current.stage, toStage, null);
 }
