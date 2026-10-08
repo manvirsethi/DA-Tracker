@@ -1,16 +1,6 @@
 export type Priority = 'High' | 'Medium' | 'Normal';
 
-export type ApplicationStage =
-  | 'Not yet applied'
-  | 'Preparing application'
-  | 'Application submitted'
-  | 'Online assessment'
-  | 'Video interview'
-  | 'Telephone interview'
-  | 'Assessment centre'
-  | 'Final interview'
-  | 'Offer'
-  | 'Accepted';
+export type ApplicationStage = string;
 
 export type ApplicationStatus = 'Active' | 'Rejected' | 'Withdrawn' | 'Closed' | 'Archived';
 
@@ -66,6 +56,7 @@ export const STAGES: ApplicationStage[] = [
   'Preparing application',
   'Application submitted',
   'Online assessment',
+  'Awaiting next stage',
   'Video interview',
   'Telephone interview',
   'Assessment centre',
@@ -78,6 +69,7 @@ export const PIPELINE_GROUPS = [
   { label: 'To apply', stages: ['Not yet applied', 'Preparing application'] as ApplicationStage[] },
   { label: 'Applied', stages: ['Application submitted'] as ApplicationStage[] },
   { label: 'Assessment', stages: ['Online assessment'] as ApplicationStage[] },
+  { label: 'Waiting', stages: ['Awaiting next stage'] as ApplicationStage[] },
   { label: 'Interview', stages: ['Video interview', 'Telephone interview', 'Assessment centre', 'Final interview'] as ApplicationStage[] },
   { label: 'Offer', stages: ['Offer', 'Accepted'] as ApplicationStage[] },
 ];
