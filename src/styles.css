@@ -805,3 +805,277 @@ input:focus, select:focus, textarea:focus {
 @media (prefers-reduced-motion: no-preference) {
   .application-card, .primary-button, .secondary-button, .nav-button { transition: .14s ease; }
 }
+
+
+/* Dark mode */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] #root,
+[data-theme="dark"] .main-area {
+  background: #0c111b;
+  color: #e6ebf4;
+}
+
+[data-theme="dark"] .sidebar {
+  background: #080d16;
+  border-right-color: #1d2634;
+}
+
+[data-theme="dark"] .brand span,
+[data-theme="dark"] .nav-button,
+[data-theme="dark"] .menu-button {
+  color: #8f9bb0;
+}
+
+[data-theme="dark"] .nav-button:hover,
+[data-theme="dark"] .menu-button:hover,
+[data-theme="dark"] .nav-button.active {
+  color: #f3f6fb;
+}
+
+[data-theme="dark"] .nav-button:hover,
+[data-theme="dark"] .menu-button:hover {
+  background: rgba(255,255,255,.06);
+}
+
+[data-theme="dark"] .nav-button.active {
+  background: rgba(90,109,245,.2);
+}
+
+.theme-toggle span {
+  flex: 1;
+}
+
+[data-theme="dark"] .topbar {
+  background: rgba(15,21,32,.9);
+  border-bottom-color: #202a39;
+}
+
+[data-theme="dark"] .search-box {
+  background: #131b27;
+  border-color: #2a3546;
+  color: #8e9aae;
+}
+
+[data-theme="dark"] .search-box input,
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  color: #e7ebf3;
+}
+
+[data-theme="dark"] .search-box input::placeholder,
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: #69758a;
+}
+
+[data-theme="dark"] .page-heading h1,
+[data-theme="dark"] .detail-heading h1,
+[data-theme="dark"] .stat-card strong,
+[data-theme="dark"] .panel-header h3,
+[data-theme="dark"] .application-card > strong,
+[data-theme="dark"] .modal-header h2,
+[data-theme="dark"] .empty-state h2 {
+  color: #eef2f8;
+}
+
+[data-theme="dark"] .page-heading p,
+[data-theme="dark"] .detail-heading p,
+[data-theme="dark"] .panel-header p,
+[data-theme="dark"] .application-card p,
+[data-theme="dark"] .archive-main span,
+[data-theme="dark"] .task-row span,
+[data-theme="dark"] .timeline-item span,
+[data-theme="dark"] .detail-row span,
+[data-theme="dark"] .notes-box.muted,
+[data-theme="dark"] .empty-state,
+[data-theme="dark"] .mini-empty,
+[data-theme="dark"] .column-empty {
+  color: #8d99ad;
+}
+
+[data-theme="dark"] .stat-card,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .archive-list,
+[data-theme="dark"] .stage-panel,
+[data-theme="dark"] .terminal-actions,
+[data-theme="dark"] .application-card,
+[data-theme="dark"] .modal {
+  background: #121925;
+  border-color: #263143;
+}
+
+[data-theme="dark"] .stat-icon,
+[data-theme="dark"] .empty-state .empty-icon {
+  background: #1a2340;
+}
+
+[data-theme="dark"] .panel-header,
+[data-theme="dark"] .attention-row,
+[data-theme="dark"] .deadline-row,
+[data-theme="dark"] .pipeline-summary > div,
+[data-theme="dark"] .archive-row,
+[data-theme="dark"] .task-row,
+[data-theme="dark"] .detail-row,
+[data-theme="dark"] .card-meta {
+  border-color: #222d3d;
+}
+
+[data-theme="dark"] .attention-row:hover,
+[data-theme="dark"] .deadline-row:hover,
+[data-theme="dark"] .link-row:hover {
+  background: #161f2d;
+}
+
+[data-theme="dark"] .date-tile,
+[data-theme="dark"] .due-chip,
+[data-theme="dark"] .badge.priority,
+[data-theme="dark"] .badge.status {
+  background: #1b2432;
+  color: #aab4c5;
+}
+
+[data-theme="dark"] .board-column {
+  background: #101721;
+  border-color: #263143;
+}
+
+[data-theme="dark"] .column-header {
+  color: #9ca8ba;
+}
+
+[data-theme="dark"] .column-header strong {
+  background: #222d3c;
+}
+
+[data-theme="dark"] .application-card:hover {
+  border-color: #3a4960;
+  box-shadow: 0 5px 18px rgba(0,0,0,.22);
+}
+
+[data-theme="dark"] .card-top,
+[data-theme="dark"] .card-meta {
+  color: #8d99ad;
+}
+
+[data-theme="dark"] .secondary-button,
+[data-theme="dark"] .check-button,
+[data-theme="dark"] .stage-list button,
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #151d29;
+  border-color: #2c3849;
+  color: #e6ebf4;
+}
+
+[data-theme="dark"] .secondary-button:hover,
+[data-theme="dark"] .icon-button:hover,
+[data-theme="dark"] .stage-list button:hover:not(:disabled) {
+  background: #1b2533;
+}
+
+[data-theme="dark"] .stage-filter {
+  background: #151d29;
+  border-color: #2c3849;
+  color: #e6ebf4;
+}
+
+[data-theme="dark"] label {
+  color: #aeb7c6;
+}
+
+[data-theme="dark"] .stage-list button.current {
+  background: #1b2230;
+  color: #7f8b9e;
+}
+
+[data-theme="dark"] .notes-box {
+  color: #c1c9d6;
+}
+
+[data-theme="dark"] .timeline-item:not(:last-child)::before {
+  background: #2a3546;
+}
+
+[data-theme="dark"] .timeline-dot {
+  box-shadow: 0 0 0 3px #1a2340;
+}
+
+[data-theme="dark"] .terminal-actions button {
+  background: #151d29;
+  border-color: #2c3849;
+  color: #aeb7c6;
+}
+
+[data-theme="dark"] .terminal-actions button:hover {
+  background: #2a1d22;
+  border-color: #55313a;
+  color: #ee9aa7;
+}
+
+[data-theme="dark"] .modal-backdrop {
+  background: rgba(3,7,13,.68);
+}
+
+[data-theme="dark"] .modal {
+  border-color: #334055;
+  box-shadow: 0 24px 80px rgba(0,0,0,.48);
+}
+
+[data-theme="dark"] .form-error {
+  background: #321d23;
+  color: #ff9aa7;
+}
+
+[data-theme="dark"] .back-button {
+  color: #919daf;
+}
+
+[data-theme="dark"] .back-button:hover {
+  color: #e1e6ef;
+}
+
+[data-theme="dark"] .badge.status.rejected {
+  background: #321d23;
+  color: #f39aa5;
+}
+
+[data-theme="dark"] .badge.status.withdrawn,
+[data-theme="dark"] .badge.status.closed {
+  background: #2a2521;
+  color: #c7b7a9;
+}
+
+[data-theme="dark"] .badge.status.archived {
+  background: #1c2c24;
+  color: #8cc4a2;
+}
+
+[data-theme="dark"] .due-chip.warning {
+  background: #332813;
+  color: #e9bc67;
+}
+
+[data-theme="dark"] .due-chip.danger {
+  background: #351d22;
+  color: #f08f9a;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  .topbar,
+  .panel,
+  .stat-card,
+  .application-card,
+  .modal,
+  input,
+  select,
+  textarea {
+    transition: background-color .18s ease, border-color .18s ease, color .18s ease;
+  }
+}
