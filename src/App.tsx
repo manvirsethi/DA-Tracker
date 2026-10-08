@@ -4,7 +4,7 @@ import { save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
 import {
   Archive, ArrowLeft, ArrowRight, BriefcaseBusiness, Check, CircleAlert,
-  Clock3, Download, ExternalLink, FileSpreadsheet, LayoutDashboard, Moon, Plus, RotateCcw,
+  Clock3, Download, ExternalLink, FileSpreadsheet, Hourglass, LayoutDashboard, Moon, Plus, RotateCcw,
   Search, Settings2, Sun, Trash2, X,
 } from 'lucide-react';
 import {
@@ -23,6 +23,16 @@ function stageLabel(stage: ApplicationStage) {
   if (stage === 'Not yet applied') return 'Not applied';
   if (stage === 'Application submitted') return 'Applied';
   return stage;
+}
+
+function stageTone(stage: ApplicationStage) {
+  if (['Not yet applied', 'Preparing application'].includes(stage)) return 'to-apply';
+  if (stage === 'Application submitted') return 'applied';
+  if (stage === 'Online assessment') return 'assessment';
+  if (stage === 'Awaiting next stage' || /wait|pending|review|result/i.test(stage)) return 'waiting';
+  if (['Video interview', 'Telephone interview', 'Assessment centre', 'Final interview'].includes(stage)) return 'interview';
+  if (['Offer', 'Accepted'].includes(stage)) return 'offer';
+  return 'custom';
 }
 
 function parseDateOnly(value: string) {
@@ -118,6 +128,11 @@ export default function App() {
     [active, archived, selectedId],
   );
 
+  const knownStages = useMemo(
+    () => Array.from(new Set([...STAGES, ...active.map((item) => item.stage), ...archived.map((item) => item.stage)])),
+    [active, archived],
+  );
+
   const filteredActive = useMemo(() => {
     const q = query.trim().toLowerCase();
     return active.filter((a) => {
@@ -184,14 +199,14 @@ export default function App() {
         <section className="content">
           {loading && <EmptyState title="Loading DA Tracker…" body="Opening your local database." />}
           {error && <ErrorState error={error} />}
-          {!loading && !error && selected && <ApplicationDetail application={selected} onBack={() => setSelectedId(null)} onRefresh={refresh} onEdit={() => { setEditId(selected.id); setShowForm(true); }} />}
+          {!loading && !error && selected && <ApplicationDetail application={selected} knownStages={knownStages} onBack={() => setSelectedId(null)} onRefresh={refresh} onEdit={() => { setEditId(selected.id); setShowForm(true); }} />}
           {!loading && !error && !selected && view === 'dashboard' && <Dashboard applications={active} deadlines={deadlines} onOpen={setSelectedId} />}
-          {!loading && !error && !selected && view === 'applications' && <ApplicationsView applications={filteredActive} stageFilter={stageFilter} setStageFilter={setStageFilter} onOpen={setSelectedId} />}
+          {!loading && !error && !selected && view === 'applications' && <ApplicationsView applications={filteredActive} knownStages={knownStages} stageFilter={stageFilter} setStageFilter={setStageFilter} onOpen={setSelectedId} />}
           {!loading && !error && !selected && view === 'archive' && <ArchiveView applications={filteredArchive} onOpen={setSelectedId} onRestore={async (id) => { await restoreApplication(id); await refresh(); }} />}
         </section>
       </main>
 
-      {showForm && <ApplicationForm application={editId ? [...active, ...archived].find((a) => a.id === editId) ?? null : null} onClose={() => setShowForm(false)} onSaved={async (id) => { setShowForm(false); await refresh(); setSelectedId(id); }} />}
+      {showForm && <ApplicationForm application={editId ? [...active, ...archived].find((a) => a.id === editId) ?? null : null} knownStages={knownStages} onClose={() => setShowForm(false)} onSaved={async (id) => { setShowForm(false); await refresh(); setSelectedId(id); }} />}
     </div>
   );
 }
@@ -213,14 +228,18 @@ function Dashboard({ applications, deadlines, onOpen }: { applications: Applicat
     .filter((item) => daysUntil(item.due_date) <= (item.application.stage === 'Not yet applied' ? 7 : 3))
     .sort((a, b) => a.due_date.localeCompare(b.due_date))
     .slice(0, 6);
-  const inProgress = applications.filter((a) => !['Not yet applied', 'Accepted'].includes(a.stage)).length;
+  const inProgress = applications.filter((a) => !['Not yet applied', 'Preparing application', 'Accepted'].includes(a.stage)).length;
+  const waiting = applications.filter((a) => stageTone(a.stage) === 'waiting').length;
   const offers = applications.filter((a) => ['Offer', 'Accepted'].includes(a.stage)).length;
+  const groupedStages = new Set(PIPELINE_GROUPS.flatMap((group) => group.stages));
+  const customCount = applications.filter((a) => !groupedStages.has(a.stage)).length;
 
   return <>
     <PageHeading eyebrow="Overview" title="Dashboard" description="What needs your attention across your applications." />
     <div className="stats-grid">
       <StatCard icon={<CircleAlert size={20}/>} label="Needs action" value={attention.length} />
-      <StatCard icon={<Clock3 size={20}/>} label="In progress" value={inProgress} />
+      <StatCard icon={<Clock3 size={20}/>} label="Active process" value={inProgress} />
+      <StatCard icon={<Hourglass size={20}/>} label="Waiting" value={waiting} />
       <StatCard icon={<Check size={20}/>} label="Offers" value={offers} />
     </div>
     <div className="dashboard-grid">
@@ -239,19 +258,44 @@ function Dashboard({ applications, deadlines, onOpen }: { applications: Applicat
       </Panel>
     </div>
     <Panel title="Pipeline" subtitle={`${applications.length} active application${applications.length === 1 ? '' : 's'}`}>
-      <div className="pipeline-summary">{PIPELINE_GROUPS.map((group) => <div key={group.label}><span>{group.label}</span><strong>{applications.filter((a) => group.stages.includes(a.stage)).length}</strong></div>)}</div>
+      <div className="pipeline-summary">{PIPELINE_GROUPS.map((group) => <div key={group.label}><span>{group.label}</span><strong>{applications.filter((a) => group.stages.includes(a.stage)).length}</strong></div>)}{customCount > 0 && <div><span>Custom</span><strong>{customCount}</strong></div>}</div>
     </Panel>
   </>;
 }
 
-function ApplicationsView({ applications, stageFilter, setStageFilter, onOpen }: { applications: Application[]; stageFilter: string; setStageFilter: (v: string) => void; onOpen: (id: number) => void }) {
+function ApplicationsView({ applications, knownStages, stageFilter, setStageFilter, onOpen }: { applications: Application[]; knownStages: ApplicationStage[]; stageFilter: string; setStageFilter: (v: string) => void; onOpen: (id: number) => void }) {
+  const sorted = [...applications].sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority) || a.company.localeCompare(b.company));
+
   return <>
-    <div className="heading-row"><PageHeading eyebrow="Active" title="Applications" description="Track each apprenticeship from interest through to outcome." /><select className="stage-filter" value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}><option>All</option>{STAGES.map((s) => <option key={s} value={s}>{stageLabel(s)}</option>)}</select></div>
-    {applications.length === 0 ? <EmptyState title="No applications here" body="Add an apprenticeship when your ChatGPT watcher finds one you want to pursue." /> : <div className="board">
-      {PIPELINE_GROUPS.map((group) => {
-        const items = applications.filter((a) => group.stages.includes(a.stage)).sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
-        return <section className="board-column" key={group.label}><div className="column-header"><span>{group.label}</span><strong>{items.length}</strong></div><div className="column-list">{items.map((a) => <ApplicationCard key={a.id} application={a} onClick={() => onOpen(a.id)} />)}{items.length === 0 && <div className="column-empty">No applications</div>}</div></section>;
-      })}
+    <div className="heading-row">
+      <PageHeading eyebrow="Active" title="Applications" description="Everything you are applying for, with the current status visible at a glance." />
+      <div className="list-controls">
+        <span>{applications.length} shown</span>
+        <select className="stage-filter" value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
+          <option value="All">All statuses</option>
+          {knownStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+        </select>
+      </div>
+    </div>
+    {applications.length === 0 ? <EmptyState title="No applications here" body="Add an apprenticeship, or change the status filter to see more." /> : <div className="applications-list">
+      <div className="applications-list-header">
+        <span>Application</span><span>Status</span><span>Priority</span><span>Deadline</span><span aria-hidden="true"></span>
+      </div>
+      {sorted.map((application) => (
+        <button className="application-list-row" key={application.id} onClick={() => onOpen(application.id)}>
+          <div className="application-main-cell">
+            <strong>{application.company}</strong>
+            <span>{application.programme}{application.location ? ` · ${application.location}` : ''}</span>
+          </div>
+          <div><StageBadge stage={application.stage}/></div>
+          <div><PriorityBadge priority={application.priority}/></div>
+          <div className={`deadline-cell ${application.application_deadline && daysUntil(application.application_deadline) <= 3 ? 'urgent' : ''}`}>
+            <strong>{formatDate(application.application_deadline)}</strong>
+            {application.application_deadline && <span>{deadlineLabel(application.application_deadline)}</span>}
+          </div>
+          <ArrowRight className="row-arrow" size={16}/>
+        </button>
+      ))}
     </div>}
   </>;
 }
@@ -267,7 +311,7 @@ function ApplicationCard({ application, onClick }: { application: Application; o
   return <button className="application-card" onClick={onClick}><div className="card-top"><PriorityDot priority={application.priority}/><span>{application.priority}</span></div><strong>{application.company}</strong><p>{application.programme}</p><div className="card-meta"><span>{stageLabel(application.stage)}</span>{application.application_deadline && <span className={daysUntil(application.application_deadline) <= 3 ? 'urgent-text' : ''}>{deadlineLabel(application.application_deadline)}</span>}</div></button>;
 }
 
-function ApplicationDetail({ application, onBack, onRefresh, onEdit }: { application: Application; onBack: () => void; onRefresh: () => Promise<void>; onEdit: () => void }) {
+function ApplicationDetail({ application, knownStages, onBack, onRefresh, onEdit }: { application: Application; knownStages: ApplicationStage[]; onBack: () => void; onRefresh: () => Promise<void>; onEdit: () => void }) {
   const [events, setEvents] = useState<ApplicationEvent[]>([]);
   const [deadlines, setDeadlines] = useState<Deadline[]>([]);
   const [showStage, setShowStage] = useState(false);
@@ -290,7 +334,7 @@ function ApplicationDetail({ application, onBack, onRefresh, onEdit }: { applica
     <button className="back-button" onClick={onBack}><ArrowLeft size={17}/> Back</button>
     <div className="detail-heading"><div><div className="eyebrow">Application</div><h1>{application.company}</h1><p>{application.programme}{application.location ? ` · ${application.location}` : ''}</p></div><div className="detail-actions"><PriorityBadge priority={application.priority}/><button className="secondary-button" onClick={onEdit}><Settings2 size={16}/> Edit</button></div></div>
 
-    <div className="stage-panel"><div><span>Application status</span><strong>{stageLabel(application.stage)}</strong></div>{application.status === 'Active' && <button className="primary-button" onClick={() => setShowStage(true)}>Change stage <ArrowRight size={16}/></button>}<StatusBadge status={application.status}/></div>
+    <div className="stage-panel"><div><span>Current status</span><strong>{stageLabel(application.stage)}</strong></div>{application.status === 'Active' && <button className="primary-button" onClick={() => setShowStage(true)}>Change status <ArrowRight size={16}/></button>}<StatusBadge status={application.status}/></div>
 
     <div className="detail-grid">
       <Panel title="Next steps" subtitle="Deadlines for this application" action={application.status === 'Active' ? <button className="text-button" onClick={() => setShowDeadline(true)}><Plus size={15}/> Add deadline</button> : undefined}>
@@ -313,19 +357,22 @@ function ApplicationDetail({ application, onBack, onRefresh, onEdit }: { applica
 
     {application.status === 'Active' && <div className="terminal-actions"><span>Application outcome</span><div><button onClick={() => void archive('Rejected')}>Mark rejected</button><button onClick={() => void archive('Withdrawn')}>Withdraw</button><button onClick={() => void archive('Closed')}>Vacancy closed</button>{application.stage === 'Accepted' && <button onClick={() => void archive('Archived')}>Archive accepted</button>}</div></div>}
 
-    {showStage && <StageModal current={application.stage} onClose={() => setShowStage(false)} onChoose={(s) => void move(s)} />}
+    {showStage && <StageModal current={application.stage} stages={knownStages} onClose={() => setShowStage(false)} onChoose={(s) => void move(s)} />}
     {showDeadline && <DeadlineModal onClose={() => setShowDeadline(false)} onSave={async (title, due) => { await addDeadline(application.id, title, due); setShowDeadline(false); await refreshDetail(); await onRefresh(); }} />}
   </>;
 }
 
-function ApplicationForm({ application, onClose, onSaved }: { application: Application | null; onClose: () => void; onSaved: (id: number) => void }) {
+function ApplicationForm({ application, knownStages, onClose, onSaved }: { application: Application | null; knownStages: ApplicationStage[]; onClose: () => void; onSaved: (id: number) => void }) {
   const [form, setForm] = useState<ApplicationInput>({ company: application?.company ?? '', programme: application?.programme ?? '', location: application?.location ?? '', url: application?.url ?? '', priority: application?.priority ?? 'Normal', stage: application?.stage ?? 'Not yet applied', application_deadline: application?.application_deadline ?? '', notes: application?.notes ?? '' });
+  const [customStageMode, setCustomStageMode] = useState(false);
+  const [customStage, setCustomStage] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.company.trim() || !form.programme.trim()) { setError('Company and programme are required.'); return; }
+    if (!form.stage.trim()) { setError('Choose a status or enter a custom one.'); return; }
     if (form.url?.trim()) { try { new URL(form.url); } catch { setError('Enter a valid application URL.'); return; } }
     setSaving(true);
     try {
@@ -340,24 +387,66 @@ function ApplicationForm({ application, onClose, onSaved }: { application: Appli
     } catch (err) { setError(err instanceof Error ? err.message : String(err)); setSaving(false); }
   }
 
-  return <div className="modal-backdrop"><form className="modal large" onSubmit={submit}><div className="modal-header"><div><span className="eyebrow">{application ? 'Edit' : 'New'}</span><h2>{application ? 'Edit application' : 'Add application'}</h2></div><button type="button" className="icon-button" onClick={onClose}><X size={18}/></button></div>
-    <div className="form-grid">
-      <label>Company *<input autoFocus value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })}/></label>
-      <label>Programme *<input value={form.programme} onChange={(e) => setForm({ ...form, programme: e.target.value })}/></label>
-      <label>Location<input value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}/></label>
-      <label>Priority<select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}><option>High</option><option>Medium</option><option>Normal</option></select></label>
-      <label>Application status<select value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value as ApplicationStage })}>{STAGES.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}</select></label>
-      <label>Application deadline<input type="date" value={form.application_deadline} onChange={(e) => setForm({ ...form, application_deadline: e.target.value })}/></label>
-      <label className="full">Application URL<input placeholder="https://…" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}/></label>
-      <label className="full">Notes<textarea rows={5} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}/></label>
-    </div>
+  return <div className="modal-backdrop"><form className="modal large application-form" onSubmit={submit}><div className="modal-header"><div><span className="eyebrow">{application ? 'Edit' : 'New application'}</span><h2>{application ? 'Edit application' : 'Add application'}</h2><p>{application ? 'Update the details or move this application to a new status.' : 'Add only what you know now. You can update everything later.'}</p></div><button type="button" className="icon-button" onClick={onClose}><X size={18}/></button></div>
+    <section className="form-section">
+      <div className="form-section-heading"><strong>Application</strong><span>The role you are tracking</span></div>
+      <div className="form-grid">
+        <label>Company *<input autoFocus value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })}/></label>
+        <label>Programme *<input value={form.programme} onChange={(e) => setForm({ ...form, programme: e.target.value })}/></label>
+        <label>Location<input placeholder="e.g. London" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })}/></label>
+        <label>Application URL<input placeholder="https://…" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })}/></label>
+      </div>
+    </section>
+
+    <section className="form-section">
+      <div className="form-section-heading"><strong>Tracking</strong><span>Where this application is right now</span></div>
+      <div className="form-grid">
+        <label className="status-field">Current status
+          <select value={customStageMode ? '__custom__' : form.stage} onChange={(e) => {
+            if (e.target.value === '__custom__') {
+              setCustomStageMode(true);
+              setCustomStage('');
+              setForm({ ...form, stage: '' });
+            } else {
+              setCustomStageMode(false);
+              setCustomStage('');
+              setForm({ ...form, stage: e.target.value });
+            }
+          }}>
+            {knownStages.map((stage) => <option key={stage} value={stage}>{stageLabel(stage)}</option>)}
+            <option value="__custom__">Custom status…</option>
+          </select>
+          <span className="field-hint">Use the closest option, or create your own.</span>
+        </label>
+        <label>Priority<select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value as Priority })}><option>High</option><option>Medium</option><option>Normal</option></select></label>
+        {customStageMode && <label className="full custom-status-field">Custom status
+          <input autoFocus placeholder="e.g. Online assessment complete – awaiting result" value={customStage} onChange={(e) => { setCustomStage(e.target.value); setForm({ ...form, stage: e.target.value }); }}/>
+          <span className="field-hint">This becomes a reusable status once the application is saved.</span>
+        </label>}
+        <label>Application deadline<input type="date" value={form.application_deadline} onChange={(e) => setForm({ ...form, application_deadline: e.target.value })}/></label>
+      </div>
+    </section>
+
+    <section className="form-section">
+      <div className="form-section-heading"><strong>Notes</strong><span>Optional context, reminders or useful details</span></div>
+      <label><textarea rows={4} placeholder="Anything you want to remember about this application…" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })}/></label>
+    </section>
+
     {error && <div className="form-error">{error}</div>}
     <div className="modal-footer"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={saving}>{saving ? 'Saving…' : application ? 'Save changes' : 'Add application'}</button></div>
   </form></div>;
 }
 
-function StageModal({ current, onClose, onChoose }: { current: ApplicationStage; onClose: () => void; onChoose: (s: ApplicationStage) => void }) {
-  return <div className="modal-backdrop"><div className="modal"><div className="modal-header"><div><span className="eyebrow">Current: {stageLabel(current)}</span><h2>Change status</h2></div><button className="icon-button" onClick={onClose}><X size={18}/></button></div><div className="stage-list">{STAGES.map((stage) => <button key={stage} className={stage === current ? 'current' : ''} disabled={stage === current} onClick={() => onChoose(stage)}><span>{stageLabel(stage)}</span>{stage === current ? <Check size={16}/> : <ArrowRight size={16}/>}</button>)}</div></div></div>;
+function StageModal({ current, stages, onClose, onChoose }: { current: ApplicationStage; stages: ApplicationStage[]; onClose: () => void; onChoose: (s: ApplicationStage) => void }) {
+  const [customStage, setCustomStage] = useState('');
+
+  return <div className="modal-backdrop"><div className="modal status-modal"><div className="modal-header"><div><span className="eyebrow">Current: {stageLabel(current)}</span><h2>Update status</h2><p>Choose the closest stage, or enter exactly what you are waiting for.</p></div><button className="icon-button" onClick={onClose}><X size={18}/></button></div>
+    <div className="stage-list">{stages.map((stage) => <button key={stage} className={stage === current ? 'current' : ''} disabled={stage === current} onClick={() => onChoose(stage)}><span>{stageLabel(stage)}</span>{stage === current ? <Check size={16}/> : <ArrowRight size={16}/>}</button>)}</div>
+    <div className="custom-stage-box">
+      <label>Custom status<input placeholder="e.g. Assessment complete – awaiting next stage" value={customStage} onChange={(e) => setCustomStage(e.target.value)}/></label>
+      <button className="primary-button" disabled={!customStage.trim() || customStage.trim() === current} onClick={() => onChoose(customStage.trim())}>Use custom status</button>
+    </div>
+  </div></div>;
 }
 
 function DeadlineModal({ onClose, onSave }: { onClose: () => void; onSave: (title: string, due: string) => void }) {
@@ -374,4 +463,5 @@ function ErrorState({ error }: { error: string }) { return <div className="empty
 function DetailRow({ label, value }: { label: string; value: string }) { return <div className="detail-row"><span>{label}</span><strong>{value}</strong></div>; }
 function PriorityDot({ priority }: { priority: Priority }) { return <span className={`priority-dot ${priority.toLowerCase()}`} />; }
 function PriorityBadge({ priority }: { priority: Priority }) { return <span className={`badge priority ${priority.toLowerCase()}`}><PriorityDot priority={priority}/>{priority}</span>; }
+function StageBadge({ stage }: { stage: ApplicationStage }) { return <span className={`stage-badge ${stageTone(stage)}`}>{stageLabel(stage)}</span>; }
 function StatusBadge({ status }: { status: ApplicationStatus }) { return <span className={`badge status ${status.toLowerCase()}`}>{status}</span>; }
