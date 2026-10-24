@@ -1,3 +1,8 @@
 {
-  "identifier": "com.manvirsethi.datracker.ios2026"
+  "identifier": "com.manvirsethi.datracker.ios2026",
+  "bundle": {
+    "iOS": {
+      "developmentTeam": "ASG5ZF8WZX"
+    }
+  }
 }
