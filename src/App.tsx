@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
+import { cloudConfigured, currentSession, supabase } from './supabase';
+import { importLocalData, inspectLocalImport } from './cloud-db';
 import { invoke } from '@tauri-apps/api/core';
 import { save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
@@ -89,6 +92,71 @@ function useAppData() {
 }
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [authError, setAuthError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    if (!supabase) { setChecking(false); return; }
+    const subscription = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (active) { setSession(nextSession); setChecking(false); }
+    }).data.subscription;
+    void currentSession().then((value) => {
+      if (active) { setSession(value); setChecking(false); }
+    }).catch((err: unknown) => {
+      if (active) { setAuthError(err instanceof Error ? err.message : String(err)); setChecking(false); }
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, []);
+
+  if (!cloudConfigured) return <AuthScreen configMissing />;
+  if (checking) return <div className="auth-screen"><div className="auth-card">Checking your session…</div></div>;
+  if (!session) return <AuthScreen initialError={authError} />;
+  return <TrackerApp userEmail={session.user.email ?? ''} onSignOut={async () => { await supabase?.auth.signOut(); }} />;
+}
+
+function AuthScreen({configMissing=false,initialError=''}:{configMissing?:boolean;initialError?:string}) {
+  const [email,setEmail] = useState('');
+  const [password,setPassword] = useState('');
+  const [registering,setRegistering] = useState(false);
+  const [busy,setBusy] = useState(false);
+  const [error,setError] = useState(initialError);
+  const [info,setInfo] = useState('');
+
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!supabase) return;
+    setBusy(true); setError(''); setInfo('');
+    try {
+      if (registering) {
+        const {data,error} = await supabase.auth.signUp({email:email.trim(),password});
+        if (error) throw error;
+        if (!data.session) setInfo('Check your email to confirm your account, then sign in.');
+      } else {
+        const {error} = await supabase.auth.signInWithPassword({email:email.trim(),password});
+        if (error) throw error;
+      }
+    } catch(err) { setError(err instanceof Error ? err.message : String(err)); }
+    finally { setBusy(false); }
+  }
+
+  return <div className="auth-screen"><div className="auth-card">
+    <div className="brand"><div className="brand-mark">DA</div><div><strong>DA Tracker</strong><span>Degree apprenticeships</span></div></div>
+    <h1>{configMissing ? 'Connect Supabase' : registering ? 'Create account' : 'Welcome back'}</h1>
+    <p>{configMissing ? 'Your Supabase publishable key is not configured. Add it to .env.local and rebuild DA Tracker.' : 'Sign in with the same account on your Mac and iPhone to access your applications.'}</p>
+    {configMissing ? <p className="auth-note">Only use a publishable key. Never place a secret or service-role key in this app.</p> : <form onSubmit={submit}>
+      <label>Email address<input type="email" autoComplete="email" required value={email} onChange={e=>setEmail(e.target.value)} /></label>
+      <label>Password<input type="password" minLength={6} autoComplete={registering ? 'new-password' : 'current-password'} required value={password} onChange={e=>setPassword(e.target.value)}/></label>
+      {error && <div className="form-error">{error}</div>}
+      {info && <p className="auth-note">{info}</p>}
+      <button className="primary-button" disabled={busy}>{busy ? 'Please wait…' : registering ? 'Create account' : 'Sign in'}</button>
+      <button type="button" className="auth-switch" onClick={()=>{setRegistering(!registering);setError('');setInfo('');}}>{registering ? 'Already have an account? Sign in' : 'New here? Create an account'}</button>
+    </form>}
+  </div></div>;
+}
+
+function TrackerApp({userEmail,onSignOut}:{userEmail:string;onSignOut:()=>Promise<void>}) {
   const [view, setView] = useState<View>('dashboard');
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -101,6 +169,37 @@ export default function App() {
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
   const { active, archived, deadlines, loading, error, refresh } = useAppData();
+  const [importBusy,setImportBusy] = useState(false);
+  const [syncNotice,setSyncNotice] = useState('');
+  const [importDetails,setImportDetails] = useState<{applications:number;deadlines:number;events:number} | null>(null);
+
+  async function handleLocalImport() {
+    setImportBusy(true); setSyncNotice('');
+    try {
+      const counts = await inspectLocalImport();
+      setImportDetails(counts);
+    } catch(err) { setSyncNotice(err instanceof Error ? err.message : String(err)); }
+    finally { setImportBusy(false); }
+  }
+
+  async function confirmLocalImport() {
+    setImportBusy(true); setSyncNotice('');
+    try {
+      const counts = await importLocalData();
+      await refresh();
+      setImportDetails(null);
+      setSyncNotice(`Imported ${counts.applications} applications, ${counts.deadlines} deadlines and ${counts.events} timeline entries. Your original SQLite data is unchanged.`);
+    } catch(err) { setSyncNotice(err instanceof Error ? err.message : String(err)); }
+    finally { setImportBusy(false); }
+  }
+
+  useEffect(() => {
+    const refreshWhenVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refresh(); }, 30000);
+    document.addEventListener('visibilitychange',refreshWhenVisible);
+    window.addEventListener('focus',refreshWhenVisible);
+    return () => { window.clearInterval(timer);document.removeEventListener('visibilitychange',refreshWhenVisible);window.removeEventListener('focus',refreshWhenVisible); };
+  },[refresh]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -185,8 +284,10 @@ export default function App() {
             {theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>}
             <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
           </button>
+          <button className="menu-button" onClick={() => void handleLocalImport()} disabled={importBusy}><RotateCcw size={16}/> Import Mac data</button>
           <button className="menu-button" onClick={() => void handleExport('json')}><Download size={16}/> Export backup</button>
           <button className="menu-button" onClick={() => void handleExport('csv')}><FileSpreadsheet size={16}/> Export CSV</button>
+          <div className="account-line" title={userEmail}><span>{userEmail}</span><button type="button" onClick={() => void onSignOut()}>Sign out</button></div>
         </div>
       </aside>
 
@@ -197,7 +298,8 @@ export default function App() {
         </header>
 
         <section className="content">
-          {loading && <EmptyState title="Loading DA Tracker…" body="Opening your local database." />}
+          {syncNotice && <div className="sync-banner" role="status">{syncNotice}<button onClick={() => setSyncNotice('')}>Dismiss</button></div>}
+          {loading && <EmptyState title="Loading DA Tracker…" body="Connecting to your private cloud data." />}
           {error && <ErrorState error={error} />}
           {!loading && !error && selected && <ApplicationDetail application={selected} knownStages={knownStages} onBack={() => setSelectedId(null)} onRefresh={refresh} onEdit={() => { setEditId(selected.id); setShowForm(true); }} />}
           {!loading && !error && !selected && view === 'dashboard' && <Dashboard applications={active} deadlines={deadlines} onOpen={setSelectedId} />}
@@ -206,6 +308,7 @@ export default function App() {
         </section>
       </main>
 
+      {importDetails && <div className="modal-backdrop"><div className="modal"><div className="modal-header"><div><span className="eyebrow">One-time migration</span><h2>Import Mac applications?</h2></div><button type="button" className="icon-button" onClick={()=>setImportDetails(null)}><X size={18}/></button></div><p>This will copy {importDetails.applications} applications, {importDetails.deadlines} deadlines and {importDetails.events} timeline entries from this Mac into your signed-in Supabase account. Existing matching imports will not be duplicated. Your original local database will not be deleted or modified.</p><div className="modal-footer"><button className="secondary-button" onClick={()=>setImportDetails(null)}>Cancel</button><button className="primary-button" disabled={importBusy} onClick={()=>void confirmLocalImport()}>{importBusy ? 'Importing…' : 'Import to cloud'}</button></div></div></div>}
       {showForm && <ApplicationForm application={editId ? [...active, ...archived].find((a) => a.id === editId) ?? null : null} knownStages={knownStages} onClose={() => setShowForm(false)} onSaved={async (id) => { setShowForm(false); await refresh(); setSelectedId(id); }} />}
     </div>
   );
