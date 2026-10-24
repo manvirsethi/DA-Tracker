@@ -31,7 +31,7 @@
     "active": true,
     "targets": "all",
     "category": "Productivity",
-    "shortDescription": "Track degree apprenticeship applications locally on your Mac.",
-    "longDescription": "DA Tracker is a private, local-first macOS application for managing degree apprenticeship applications, stages, deadlines, notes and outcomes."
+    "shortDescription": "Private degree apprenticeship tracker for Mac and iPhone.",
+    "longDescription": "DA Tracker securely synchronises degree apprenticeship applications, statuses, deadlines and notes using Supabase."
   }
 }
