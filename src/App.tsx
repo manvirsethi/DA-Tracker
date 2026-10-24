@@ -298,6 +298,10 @@ function TrackerApp({userEmail,onSignOut}:{userEmail:string;onSignOut:()=>Promis
         </header>
 
         <section className="content">
+          <div className="mobile-account-actions">
+            <button type="button" onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={16}/> : <Moon size={16}/>} {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button>
+            <button type="button" onClick={() => void onSignOut()}>Sign out</button>
+          </div>
           {syncNotice && <div className="sync-banner" role="status">{syncNotice}<button onClick={() => setSyncNotice('')}>Dismiss</button></div>}
           {loading && <EmptyState title="Loading DA Tracker…" body="Connecting to your private cloud data." />}
           {error && <ErrorState error={error} />}
