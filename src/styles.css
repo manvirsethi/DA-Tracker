@@ -1495,3 +1495,9 @@ input:focus, select:focus, textarea:focus {
   [data-theme="dark"] .application-list-row { background: #121925; border-color: #263143; }
   [data-theme="dark"] .pipeline-summary > div { border-color: #222d3d; }
 }
+
+.mobile-account-actions {display:none;}
+@media (max-width:700px) {
+  .mobile-account-actions {display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px;}
+  .mobile-account-actions button {display:flex;align-items:center;gap:7px;border:0;background:transparent;color:#818b9d;font-size:11px;padding:4px;}
+}
