@@ -1379,3 +1379,23 @@ input:focus, select:focus, textarea:focus {
 [data-theme="dark"] .stage-badge.interview { background: #162a37; color: #89c5e8; }
 [data-theme="dark"] .stage-badge.offer { background: #182b22; color: #91c9a8; }
 [data-theme="dark"] .stage-badge.custom { background: #292239; color: #c0afe0; }
+
+
+/* Supabase account and migration */
+.auth-screen {min-height:100vh;display:grid;place-items:center;background:#0c111b;color:#e7ebf3;padding:18px}
+.auth-card {background:#151d29;border:1px solid #2c3849;border-radius:20px;box-shadow:0 24px 60px #0005;width:min(420px,100%);padding:30px}
+.auth-card .brand {margin-bottom:26px}
+.auth-card .brand strong,.auth-card h1{color:#f4f6fb}
+.auth-card h1{font-size:24px;margin:0 0 10px}
+.auth-card p{font-size:12px;line-height:1.6;color:#a9b5c7}
+.auth-card form{display:grid;gap:15px;margin-top:22px}
+.auth-card label{color:#c7d0df;font-size:12px}
+.auth-card input{background:#0c111b!important;border-color:#364358!important;color:#fff!important}
+.auth-card .primary-button{width:100%;justify-content:center;min-height:42px}
+.auth-switch{color:#98a9ff;border:0;background:none;padding:7px;cursor:pointer}
+.auth-note{border-radius:8px;padding:12px;background:#22304a;color:#c9d7fb!important}
+.account-line{border-top:1px solid #293140;margin-top:12px;padding:15px 8px 0;display:grid;gap:8px;color:#8d9ab0;font-size:10px;overflow-wrap:anywhere}
+.account-line button{background:none;border:0;color:#8797ff;text-align:left;padding:0;cursor:pointer}
+.sync-banner{margin-bottom:18px;padding:13px;border-radius:10px;background:#e8f6ef;color:#266446;font-size:12px;display:flex;justify-content:space-between;gap:20px}
+.sync-banner button{color:inherit;border:0;background:none;text-decoration:underline;cursor:pointer}
+[data-theme="dark"] .sync-banner{background:#193a2c;color:#a2e1c1}
